@@ -139,7 +139,7 @@ export default async function HomePage() {
               </Link>
             )}
             <Link
-              href="https://github.com"
+              href="https://github.com/linder3hs/ai-pr-review"
               target="_blank"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 hover:border-gray-600 hover:bg-white/5 px-8 py-3 text-sm font-medium transition-all"
             >
