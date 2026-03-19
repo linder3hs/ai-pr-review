@@ -5,7 +5,18 @@
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --yes)",
       "Bash(npm install:*)",
-      "Bash(npx shadcn@latest init -d --yes)"
+      "Bash(npx shadcn@latest init -d --yes)",
+      "Bash(npx shadcn@latest add card input select label badge table dialog dropdown-menu skeleton toast sonner separator avatar scroll-area tabs textarea radio-group --yes)",
+      "Bash(npx shadcn@latest add card input select label badge table dialog dropdown-menu skeleton sonner separator avatar scroll-area tabs textarea radio-group --yes)",
+      "Bash(npx prisma:*)",
+      "Bash(mkdir -p /Users/linder3hs/dev/pr-review/src/app/api/auth/[...nextauth])",
+      "Bash(mkdir -p /Users/linder3hs/dev/pr-review/src/app/\\\\\\(dashboard\\\\\\)/review/[id])",
+      "Bash(npm run:*)",
+      "Bash(ls /Users/linder3hs/dev/pr-review/src/generated/prisma/index*)",
+      "Bash(npm uninstall:*)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(npm ls:*)",
+      "Bash(npx shadcn@latest add sheet --yes)"
     ]
   }
 }
