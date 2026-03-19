@@ -18,9 +18,24 @@ export function encrypt(plaintext: string): string {
 }
 
 export function decrypt(encryptedText: string): string {
-  const [ivHex, authTagHex, encrypted] = encryptedText.split(":");
+  const parts = encryptedText.split(":");
+  if (parts.length !== 3) {
+    throw new Error("Invalid encrypted data format");
+  }
+
+  const [ivHex, authTagHex, encrypted] = parts;
+
+  if (!/^[0-9a-f]+$/i.test(ivHex) || !/^[0-9a-f]+$/i.test(authTagHex) || !/^[0-9a-f]+$/i.test(encrypted)) {
+    throw new Error("Invalid encrypted data encoding");
+  }
+
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
+
+  if (iv.length !== 16 || authTag.length !== 16) {
+    throw new Error("Invalid encrypted data parameters");
+  }
+
   const decipher = createDecipheriv(ALGORITHM, getKey(), iv);
   decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encrypted, "hex", "utf8");

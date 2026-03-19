@@ -23,15 +23,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
-
-        // Attach GitHub access token to session
-        const account = await prisma.account.findFirst({
-          where: { userId: user.id, provider: "github" },
-        });
-        if (account?.access_token) {
-          (session as unknown as Record<string, unknown>).accessToken =
-            account.access_token;
-        }
       }
       return session;
     },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { encrypt, decrypt } from "@/lib/crypto";
+import { encrypt } from "@/lib/crypto";
 
 export async function GET() {
   const session = await auth();
@@ -37,8 +37,16 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const { provider, apiKey, model } = body;
 
-  if (!provider || !["openai", "anthropic"].includes(provider)) {
+  if (!provider || typeof provider !== "string" || !["openai", "anthropic"].includes(provider)) {
     return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
+  }
+
+  if (apiKey !== undefined && (typeof apiKey !== "string" || apiKey.length > 500)) {
+    return NextResponse.json({ error: "Invalid API key" }, { status: 400 });
+  }
+
+  if (model !== undefined && model !== null && (typeof model !== "string" || model.length > 100)) {
+    return NextResponse.json({ error: "Invalid model" }, { status: 400 });
   }
 
   const data: {

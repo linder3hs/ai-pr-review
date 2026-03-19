@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getServerAccessToken } from "@/lib/auth-utils";
 import { getUserRepos } from "@/lib/github";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const accessToken = await getServerAccessToken();
+  if (!accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const repos = await getUserRepos(session.accessToken);
+    const repos = await getUserRepos(accessToken);
     return NextResponse.json(repos);
-  } catch (error) {
-    console.error("Failed to fetch repos:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch repositories" },
       { status: 500 }

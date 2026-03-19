@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getServerAccessToken } from "@/lib/auth-utils";
 import { getRepoPulls } from "@/lib/github";
 
+const GITHUB_NAME_RE = /^[a-zA-Z0-9._-]+$/;
+
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const accessToken = await getServerAccessToken();
+  if (!accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -19,11 +21,17 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  if (!GITHUB_NAME_RE.test(owner) || !GITHUB_NAME_RE.test(repo) || owner.length > 100 || repo.length > 100) {
+    return NextResponse.json(
+      { error: "Invalid owner or repo name" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const pulls = await getRepoPulls(session.accessToken, owner, repo);
+    const pulls = await getRepoPulls(accessToken, owner, repo);
     return NextResponse.json(pulls);
-  } catch (error) {
-    console.error("Failed to fetch pulls:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch pull requests" },
       { status: 500 }

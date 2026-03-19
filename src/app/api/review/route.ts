@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getServerAccessToken } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/crypto";
 import {
@@ -8,19 +9,65 @@ import {
   postReviewComments,
 } from "@/lib/github";
 import { runAIReview } from "@/lib/ai/provider";
+import { rateLimit } from "@/lib/rate-limit";
+
+const GITHUB_NAME_RE = /^[a-zA-Z0-9._-]+$/;
+
+// Max 10 reviews per user per 10 minutes
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW = 10 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id || !session.accessToken) {
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit per user
+  const { allowed, resetIn } = rateLimit(
+    `review:${session.user.id}`,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Too many reviews. Try again in ${Math.ceil(resetIn / 60000)} minute(s).` },
+      { status: 429 }
+    );
+  }
+
+  const accessToken = await getServerAccessToken();
+  if (!accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await request.json();
   const { owner, repo, pullNumber } = body;
 
+  // Validate inputs
   if (!owner || !repo || !pullNumber) {
     return NextResponse.json(
       { error: "owner, repo, and pullNumber are required" },
+      { status: 400 }
+    );
+  }
+
+  if (
+    typeof owner !== "string" ||
+    typeof repo !== "string" ||
+    typeof pullNumber !== "number" ||
+    !Number.isInteger(pullNumber) ||
+    pullNumber < 1
+  ) {
+    return NextResponse.json(
+      { error: "Invalid input types" },
+      { status: 400 }
+    );
+  }
+
+  if (!GITHUB_NAME_RE.test(owner) || !GITHUB_NAME_RE.test(repo) || owner.length > 100 || repo.length > 100) {
+    return NextResponse.json(
+      { error: "Invalid owner or repo name" },
       { status: 400 }
     );
   }
@@ -54,8 +101,8 @@ export async function POST(request: NextRequest) {
   try {
     // Fetch PR details and diff
     const [prDetails, diff] = await Promise.all([
-      getPullRequestDetails(session.accessToken, owner, repo, pullNumber),
-      getPullRequestDiff(session.accessToken, owner, repo, pullNumber),
+      getPullRequestDetails(accessToken, owner, repo, pullNumber),
+      getPullRequestDiff(accessToken, owner, repo, pullNumber),
     ]);
 
     // Update review with PR title and diff
@@ -93,7 +140,7 @@ export async function POST(request: NextRequest) {
     // Post review to GitHub
     try {
       await postReviewComments(
-        session.accessToken,
+        accessToken,
         owner,
         repo,
         pullNumber,
@@ -146,8 +193,9 @@ export async function POST(request: NextRequest) {
       data: { status: "failed" },
     });
 
-    const message =
-      error instanceof Error ? error.message : "Review failed unexpectedly";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Review failed. Please check your AI provider settings and try again." },
+      { status: 500 }
+    );
   }
 }
